@@ -1,1 +1,1 @@
-# Aws-Sqs-Workshop
+# Aws-Sqs-Workshop: Blog-Post-Crunsher

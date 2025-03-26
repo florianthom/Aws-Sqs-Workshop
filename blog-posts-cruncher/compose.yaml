@@ -1,0 +1,12 @@
+services:
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack
+    ports:
+      - "4566:4566" # LocalStack endpoint
+      - "4571:4571" # SQS endpoint
+    environment:
+      - SERVICES=sqs
+      - DEBUG=1
+    volumes:
+      - ./localstack:/etc/localstack/init/ready.d
