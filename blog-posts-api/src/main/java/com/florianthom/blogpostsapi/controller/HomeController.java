@@ -45,7 +45,8 @@ public class HomeController {
 
     public static String getPresignedUrl(S3Presigner presigner, String bucketname) {
         var presignPutRequest = PutObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofMinutes(10))
+                // should be max MessageRetentionPeriod of queue
+                .signatureDuration(Duration.ofMinutes(60))
                 .putObjectRequest(
                         PutObjectRequest.builder()
                                 .bucket(bucketname)
@@ -115,10 +116,14 @@ public class HomeController {
     // curl localhost:8080/createsqsjob
     @GetMapping("createsqsjob")
     public ResponseEntity<String> createSqsJob() throws JsonProcessingException {
-        var jobId = UUID.randomUUID();
-        var blogPostJobRequest = this.objectMapper.writeValueAsString(
-                new BlogPostJobRequestDto("my blog post job " + jobId, "my blog post content")
-        );
+        var jobId = UUID.randomUUID().toString();
+
+        var blogPostJobRequest = this.objectMapper.writeValueAsString(new BlogPostJobRequestDto(
+                jobId,
+                "my blog post job",
+                "my blog post content",
+                getPresignedUrl(this.presigner, this.bucketname)
+        ));
 
         this.sqsService.createMessage(blogPostJobRequest);
 

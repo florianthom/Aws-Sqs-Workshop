@@ -1,6 +1,10 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { SQSClient, ReceiveMessageCommand, DeleteMessageCommand, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // $: AWS_ACCESS_KEY_ID="test" AWS_SECRET_ACCESS_KEY="test" AWS_DEFAULT_REGION="eu-central-1" aws --endpoint-url=http://localhost:4566 sts get-caller-identity
 // $: AWS_ACCESS_KEY_ID="test" AWS_SECRET_ACCESS_KEY="test" AWS_DEFAULT_REGION="eu-central-1" aws --endpoint-url=http://localhost:4566 sqs purge-queue --queue-url http://localhost:4571/000000000000/inputqueue
@@ -8,13 +12,17 @@ import { ConfigService } from '@nestjs/config';
 // $: AWS_ACCESS_KEY_ID="test" AWS_SECRET_ACCESS_KEY="test" AWS_DEFAULT_REGION="eu-central-1" aws --endpoint-url=http://localhost:4566 sqs send-message --queue-url http://localhost:4571/000000000000/inputqueue --message-body "{\"title\": \"blogpost title\", \"content\": \"blog post content\"}"
 
 interface BlogPostJobRequestDto {
+  jobId: string
   title: string;
   content: string;
+  resultfileUploadUrl: string;
 }
 
 interface BlogPostJobResultDto {
+  jobId: string;
   status: string;
   content: string;
+  resultfileUploadUrl: string;
 }
 
 @Injectable()
@@ -24,7 +32,10 @@ export class AppService implements OnModuleInit, OnModuleDestroy{
   private resultQueueUrl: string;
   private isRunning = true;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly httpService: HttpService
+  ) {}
 
   async onModuleInit() {
     this.sqsClient = new SQSClient({
@@ -57,11 +68,9 @@ export class AppService implements OnModuleInit, OnModuleDestroy{
 
         const result = await this.processMessage(JSON.parse(message.Body!) as BlogPostJobRequestDto);
 
-        const jobResultDto = {status: "FINISHED", content: result} as BlogPostJobResultDto
-    
         await this.sqsClient.send(new SendMessageCommand({
           QueueUrl: this.resultQueueUrl,
-          MessageBody: JSON.stringify(jobResultDto),
+          MessageBody: JSON.stringify(result),
         }));
 
         console.log('Sent result message:', result);
@@ -75,9 +84,18 @@ export class AppService implements OnModuleInit, OnModuleDestroy{
     }
   }
 
-  async processMessage(messageBody: BlogPostJobRequestDto): Promise<string> {
-    console.log(`blog post title: ${messageBody.title} and content: ${messageBody.content}`);
-    return "finished blog post with title: " + messageBody.title;
+  async processMessage(requestDto: BlogPostJobRequestDto): Promise<BlogPostJobResultDto> {
+    console.log(`processing request with jobId: ${requestDto.jobId} and title: ${requestDto.title}`);
+
+    const fileBuffer =  await fs.promises.readFile(path.join(__dirname, '..', 'static', "large_image.jpg"));
+
+    const response = await firstValueFrom(
+      this.httpService.put(requestDto.resultfileUploadUrl, fileBuffer, {
+        headers: {'Content-Type': 'image/jpeg'},
+      }),
+    );
+    
+    return {jobId: requestDto.jobId, status: response.status + "", content: "my finished blog post", resultfileUploadUrl: requestDto.resultfileUploadUrl};
   }
 
   onModuleDestroy() {
