@@ -1,10 +1,10 @@
-package com.florianthom.presignedurl;
+package com.florianthom.blogpostsapi;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class PresignedurlApplicationTests {
+class BlogPostsApiApplicationTests {
 
 	@Test
 	void contextLoads() {

@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: blogpostsapi
+
+logging:
+  level:
+    org.springframework.web.reactive.function.client: DEBUG
+
+blogpostsapi:
+  data:
+    bucket:
+      endpoint: http://localhost:4567
+      accesskey: test
+      secretkey: test
+      name: blog-posts-api-bucket
+      region: eu-central-1
+
+  worker:
+    cruncher:
+      queue:
+        endpoint: http://localhost:4566
+        accesskey: test
+        secretkey: test
+        inputqueueurl: http://localhost:4571/000000000000/inputqueue
+        outputqueueurl: http://localhost:4571/000000000000/resultqueue
+        region: eu-central-1

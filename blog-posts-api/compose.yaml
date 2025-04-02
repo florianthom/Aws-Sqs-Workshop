@@ -1,12 +1,11 @@
 services:
   localstack:
     image: localstack/localstack:latest
-    container_name: localstack-for-worker
+    container_name: localstack-for-api
     ports:
-      - "4566:4566" # LocalStack endpoint
-      - "4571:4571" # SQS endpoint
+      - "4567:4566" # LocalStack endpoint
     environment:
-      - SERVICES=sqs,sts
+      - SERVICES=s3,sts
       - DEBUG=1
     volumes:
       - ./localstack:/etc/localstack/init/ready.d

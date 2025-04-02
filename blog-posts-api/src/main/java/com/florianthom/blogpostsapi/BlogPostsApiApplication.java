@@ -1,13 +1,11 @@
-package com.florianthom.presignedurl;
+package com.florianthom.blogpostsapi;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class PresignedurlApplication {
-
+public class BlogPostsApiApplication {
 	public static void main(String[] args) {
-		SpringApplication.run(PresignedurlApplication.class, args);
+		SpringApplication.run(BlogPostsApiApplication.class, args);
 	}
-
 }

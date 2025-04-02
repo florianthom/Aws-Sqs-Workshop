@@ -7,8 +7,13 @@ import { ConfigService } from '@nestjs/config';
 // $: AWS_ACCESS_KEY_ID="test" AWS_SECRET_ACCESS_KEY="test" AWS_DEFAULT_REGION="eu-central-1" aws --endpoint-url=http://localhost:4566 sqs send-message --queue-url http://localhost:4571/000000000000/inputqueue --message-body "Hello SQS!"
 // $: AWS_ACCESS_KEY_ID="test" AWS_SECRET_ACCESS_KEY="test" AWS_DEFAULT_REGION="eu-central-1" aws --endpoint-url=http://localhost:4566 sqs send-message --queue-url http://localhost:4571/000000000000/inputqueue --message-body "{\"title\": \"blogpost title\", \"content\": \"blog post content\"}"
 
-interface BlogPost {
+interface BlogPostJobRequestDto {
   title: string;
+  content: string;
+}
+
+interface BlogPostJobResultDto {
+  status: string;
   content: string;
 }
 
@@ -41,6 +46,7 @@ export class AppService implements OnModuleInit, OnModuleDestroy{
           QueueUrl: this.queueUrl,
           MaxNumberOfMessages: 1,
           WaitTimeSeconds: 20,
+          VisibilityTimeout: 300 // please keep this > processing time
         }));
 
         if (response.Messages === undefined || response.Messages.length === 0) continue;
@@ -49,11 +55,13 @@ export class AppService implements OnModuleInit, OnModuleDestroy{
 
         console.log('Received message:', message.Body);
 
-        const result = await this.processMessage(JSON.parse(message.Body!));
+        const result = await this.processMessage(JSON.parse(message.Body!) as BlogPostJobRequestDto);
+
+        const jobResultDto = {status: "FINISHED", content: result} as BlogPostJobResultDto
     
         await this.sqsClient.send(new SendMessageCommand({
           QueueUrl: this.resultQueueUrl,
-          MessageBody: result,
+          MessageBody: JSON.stringify(jobResultDto),
         }));
 
         console.log('Sent result message:', result);
@@ -67,9 +75,9 @@ export class AppService implements OnModuleInit, OnModuleDestroy{
     }
   }
 
-  async processMessage(messageBody: BlogPost): Promise<string> {
+  async processMessage(messageBody: BlogPostJobRequestDto): Promise<string> {
     console.log(`blog post title: ${messageBody.title} and content: ${messageBody.content}`);
-    return "result string";
+    return "finished blog post with title: " + messageBody.title;
   }
 
   onModuleDestroy() {

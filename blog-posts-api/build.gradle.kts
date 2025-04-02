@@ -24,6 +24,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	implementation("software.amazon.awssdk:s3:2.31.6")
+	implementation("software.amazon.awssdk:sqs:2.31.13")
 }
 
 tasks.withType<Test> {
