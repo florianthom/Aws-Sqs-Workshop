@@ -6,11 +6,6 @@ import { firstValueFrom } from 'rxjs';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// $: AWS_ACCESS_KEY_ID="test" AWS_SECRET_ACCESS_KEY="test" AWS_DEFAULT_REGION="eu-central-1" aws --endpoint-url=http://localhost:4566 sts get-caller-identity
-// $: AWS_ACCESS_KEY_ID="test" AWS_SECRET_ACCESS_KEY="test" AWS_DEFAULT_REGION="eu-central-1" aws --endpoint-url=http://localhost:4566 sqs purge-queue --queue-url http://localhost:4571/000000000000/inputqueue
-// $: AWS_ACCESS_KEY_ID="test" AWS_SECRET_ACCESS_KEY="test" AWS_DEFAULT_REGION="eu-central-1" aws --endpoint-url=http://localhost:4566 sqs send-message --queue-url http://localhost:4571/000000000000/inputqueue --message-body "Hello SQS!"
-// $: AWS_ACCESS_KEY_ID="test" AWS_SECRET_ACCESS_KEY="test" AWS_DEFAULT_REGION="eu-central-1" aws --endpoint-url=http://localhost:4566 sqs send-message --queue-url http://localhost:4571/000000000000/inputqueue --message-body "{\"title\": \"blogpost title\", \"content\": \"blog post content\"}"
-
 interface BlogPostJobRequestDto {
   jobId: string
   title: string;
@@ -26,11 +21,10 @@ interface BlogPostJobResultDto {
 }
 
 @Injectable()
-export class AppService implements OnModuleInit, OnModuleDestroy{
+export class AppService implements OnModuleInit{
   private sqsClient: SQSClient;
   private queueUrl: string;
   private resultQueueUrl: string;
-  private isRunning = true;
 
   constructor(
     private readonly configService: ConfigService,
@@ -52,7 +46,7 @@ export class AppService implements OnModuleInit, OnModuleDestroy{
 
     console.log('blog posts cruncher ready and listening');
 
-    while (this.isRunning) {
+    while (true) {
         const response = await this.sqsClient.send(new ReceiveMessageCommand({
           QueueUrl: this.queueUrl,
           MaxNumberOfMessages: 1,
@@ -96,10 +90,5 @@ export class AppService implements OnModuleInit, OnModuleDestroy{
     );
     
     return {jobId: requestDto.jobId, status: response.status + "", content: "my finished blog post", resultfileUploadUrl: requestDto.resultfileUploadUrl};
-  }
-
-  onModuleDestroy() {
-    this.isRunning = false;
-    console.log('SQS Worker stopped.');
   }
 }

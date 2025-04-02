@@ -113,7 +113,6 @@ public class HomeController {
         return ResponseEntity.ok("finished testpresignedurl");
     }
 
-    // curl localhost:8080/createsqsjob
     @GetMapping("createsqsjob")
     public ResponseEntity<String> createSqsJob() throws JsonProcessingException {
         var jobId = UUID.randomUUID().toString();
