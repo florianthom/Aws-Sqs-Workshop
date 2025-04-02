@@ -33,7 +33,9 @@ public class SqsService {
 
     @PostConstruct
     public void startListening() {
-        new Thread(this::getMessages).start();
+        new Thread(() -> {
+            while (true) getMessage();
+        }).start();
     }
 
     public void createMessage(String messageBody) {
@@ -41,29 +43,25 @@ public class SqsService {
                 SendMessageRequest.builder()
                         .queueUrl(inputQueueUrl).messageBody(messageBody)
                         .build());
-
         System.out.println("Message sent with ID: " + response.messageId());
     }
 
-    private void getMessages() {
-        while (true) {
-            var messages = sqsClient.receiveMessage(ReceiveMessageRequest.builder()
-                            .queueUrl(outputQueueUrl).maxNumberOfMessages(1)
-                            .waitTimeSeconds(20).visibilityTimeout(300).build())
-                    .messages();
+    private void getMessage() {
+        var messages = sqsClient.receiveMessage(ReceiveMessageRequest.builder()
+                        .queueUrl(outputQueueUrl).maxNumberOfMessages(1)
+                        .waitTimeSeconds(20).visibilityTimeout(300).build())
+                .messages();
 
-            messages.forEach(a -> {
-                try {
-                    processResultMessage(objectMapper.readValue(a.body(), BlogPostJobResultDto.class));
-                } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
-                }
+        messages.forEach(a -> {
+            try {
+                processResultMessage(objectMapper.readValue(a.body(), BlogPostJobResultDto.class));
+            } catch (JsonProcessingException e) {
+            }
 
-                sqsClient.deleteMessage(DeleteMessageRequest.builder()
-                        .queueUrl(outputQueueUrl)
-                        .receiptHandle(a.receiptHandle()).build());
-            });
-        }
+            sqsClient.deleteMessage(DeleteMessageRequest.builder()
+                    .queueUrl(outputQueueUrl)
+                    .receiptHandle(a.receiptHandle()).build());
+        });
     }
 
     private void processResultMessage(BlogPostJobResultDto message) {
